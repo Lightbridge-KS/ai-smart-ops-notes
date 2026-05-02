@@ -9,7 +9,31 @@ book:
   site-url: https://ai-smart-ops-notes-lightbridge.netlify.app
   chapters:
     - index.qmd
-
+    - part: Landscape & Protocols
+      chapters: 
+        - text: "OSS Landscape for AI Orchestraction"
+          href: "contents/landscapes/OSS_Landscape_BuildingBlock_DeepResearch.qmd"
+        - text: "PL for Non-LLM models"
+          href: "contents/landscapes/RadAI_Published_Languages_Report.qmd"
+    - part: Evaluation & Monitoring
+      chapters:
+        - text: "Evidently — A Rundown for AiSmartOps"
+          href: "contents/monitoring-module/evidently_aismartops_rundown.qmd"
+        - text: "NannyML, Post-Deployment ML Monitoring Without Ground Truth"
+          href: "contents/monitoring-module/nannyml_post_deployment_monitoring_without_ground_truth.qmd"
+    - part: Image Drift & OOD Detection
+      chapters:
+        - text: "Alibi Detect — A Rundown for AiSmartOps"
+          href: "contents/monitoring-module/alibi_detect_aismartops_rundown.qmd"
+        - text: "Frozen Encoder + Hidden Activations"
+          href: "contents/monitoring-module/frozen_encoder_hidden_activations.qmd"
+    - part: Fairness & Bias Auditing
+      chapters:
+        - text: "AI Fairness Suite — AIF360 + Fairlearn"
+          href: "contents/monitoring-module/fairness_suite_aif360_fairlearn.qmd"
+        - text: "Fairness Auditing for Vendor-Locked Black-Box Models"
+          href: "contents/monitoring-module/fairness_suite_vendor_locked.qmd"
+      
 format:
   html:
     theme:
