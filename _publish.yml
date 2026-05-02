@@ -1,0 +1,4 @@
+- source: project
+  netlify:
+    - id: 4efe149a-004e-4f97-bce8-573b6fff4a14
+      url: https://ai-smart-ops-notes.netlify.app

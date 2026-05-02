@@ -6,7 +6,7 @@ book:
   author: "Kittipos Sirivongrungson"
   date: today
   repo-url: https://github.com/Lightbridge-KS/ai-smart-ops-notes
-  site-url: https://ai-smart-ops-notes-lightbridge.netlify.app
+  site-url: https://ai-smart-ops-notes.netlify.app
   chapters:
     - index.qmd
     - part: Landscape & Protocols
