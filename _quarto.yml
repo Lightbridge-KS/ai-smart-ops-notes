@@ -33,7 +33,11 @@ book:
           href: "contents/monitoring-module/fairness_suite_aif360_fairlearn.qmd"
         - text: "Fairness Auditing for Vendor-Locked Black-Box Models"
           href: "contents/monitoring-module/fairness_suite_vendor_locked.qmd"
-      
+    - part: AI Deploy Module
+      chapters: 
+        - text: "AI Deploy Module (Idea)"
+          href: "contents/deploy-module/draft-ideas-deploy-module.qmd"
+
 format:
   html:
     theme:

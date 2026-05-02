@@ -1,0 +1,298 @@
+---
+title: "AI Deploy Module (Idea Draft)"
+---
+
+## What "AI Deploy" Should Conceptually Cover
+
+Step back and ask: *what is the job of this module?*
+
+> **The AI Deploy module's job is to take a registered AI model — internal or third-party — and make it actually run safely inside the clinical workflow, then translate its output into formats the hospital's PACS/EHR can consume.**
+
+That definition naturally implies five concerns. Borrowing the DDD lens from your `RadAI_Published_Languages_Report.md`, I'll group them into **3 pillars**:
+
+```
+┌──────────────────────────── AI DEPLOY MODULE ────────────────────────────┐
+│                                                                          │
+│  ╔═══════════════════════ PILLAR 1: CORE ENGINE ═══════════════════════╗ │
+│  ║  What's deployable, how it runs, and when it runs                   ║ │
+│  ║                                                                     ║ │
+│  ║  • Model Registry & Packaging  — format-agnostic intake             ║ │
+│  ║  • Inference Runtime           — multi-framework, GPU-accelerated   ║ │
+│  ║  • Workflow Orchestration      — routing & pipeline DAGs            ║ │
+│  ╚═════════════════════════════════════════════════════════════════════╝ │
+│                                                                          │
+│  ╔══════════════════════ PILLAR 2: INTEGRATION (ACL) ══════════════════╗ │
+│  ║  Anti-Corruption Layers — insulating the canonical model            ║ │
+│  ║                                                                     ║ │
+│  ║  • Input Adapters (ACL_in)     — vendor & internal normalizers      ║ │
+│  ║  • Output Emitters (ACL_out)   — DICOM SR/SEG/PM, FHIR, HL7 v2      ║ │
+│  ╚═════════════════════════════════════════════════════════════════════╝ │
+│                                                                          │
+│  ╔══════════════════════ PILLAR 3: LIFECYCLE & OPS ════════════════════╗ │
+│  ║  How models move from idea → silent run → production → retirement   ║ │
+│  ║                                                                     ║ │
+│  ║  • Deployment Modes            — Sandbox, Silent Run, Canary, Prod  ║ │
+│  ║  • PCCP-aware Update/Rollback  — FDA-compliant version transitions  ║ │
+│  ║  • Model Operations Surface    — APIs + dashboard for IT/researcher ║ │
+│  ╚═════════════════════════════════════════════════════════════════════╝ │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+Three pillars × ~3 components each = 8 concrete components. Now let me brainstorm each.
+
+---
+
+## Part 3 — Component-by-Component Brainstorm
+
+### Pillar 1: Core Engine
+
+#### 1a. Model Registry & Packaging
+
+**The question this answers:** *How do we take "any model" — a researcher's PyTorch checkpoint, a vendor's ONNX file, an internal MONAI Bundle — and make it deployable in a uniform way?*
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Model Registry & Packaging                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sub-features:                          │ Tools:                     │
+│   • Multi-format intake                │ MLflow Model Registry      │
+│     (Pt/ONNX/H5/SavedModel)           │ MONAI Bundle (healthcare)  │
+│   • Healthcare packaging              │ MONAI MAP (OCI container)  │
+│     (MONAI Bundle, MAP)               │ ONNX (interchange)         │
+│   • Model card / provenance           │ Sigstore + Rekor (signing) │
+│   • Version aliases                   │ DVC (artifact versioning)  │
+│     (@staging, @prod, @champion)      │                            │
+│   • Cryptographic signing             │                            │
+│     (FDA PCCP / EU AI Act)            │                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key pitch hook:** "We accept ONNX as the universal interchange, MONAI Bundle as the radiology-native packaging standard, sealed in a Sigstore-signed OCI container — the defensible 2026 stack from the Published Languages report."
+
+#### 1b. Inference Runtime
+
+**The question this answers:** *How do we actually execute the model — efficiently, on GPU, scaling up and down?*
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Inference Runtime                                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sub-features:                          │ Tools:                     │
+│   • Multi-framework serving           │ KServe (K8s-native)        │
+│     (PyTorch/TF/ONNX)                 │ NVIDIA Triton (GPU)        │
+│   • GPU-accelerated inference         │ Ray Serve (complex routing)│
+│   • Dynamic batching                  │ BentoML (lightweight pkg)  │
+│   • Auto-scaling (HPA)                │                            │
+│   • Resource quotas per model         │                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key pitch hook:** "KServe + Triton — the same combination used by Siemens AI-Rad Companion and the MONAI Deploy reference architecture."
+
+#### 1c. Workflow Orchestration
+
+**The question this answers:** *Given a new study, which model(s) should run, in what order, with what dependencies?*
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Workflow Orchestration                                              │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sub-features:                          │ Tools:                     │
+│   • DICOM-rule-based routing          │ MONAI Deploy Workflow Mgr  │
+│     (modality, body part)             │ mercure (DICOM router)     │
+│   • Multi-model pipelines (DAG)       │ Apache Airflow (general)   │
+│   • Ensemble / cascade triage         │ Flyte (typed pipelines)    │
+│   • Conditional execution             │                            │
+│   • Job priorities & queueing         │                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key pitch hook:** "mercure for DICOM-rule routing (NYU Langone-proven), MONAI Deploy Workflow Manager for clinical DAGs."
+
+---
+
+### Pillar 2: Integration (Anti-Corruption Layers)
+
+This is **directly from your `RadAI_Published_Languages_Report.md`** — the two-ACL pattern is one of the most defensible architectural choices in your platform. Make it visible.
+
+#### 2a. Input Adapters (ACL_in)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Input Adapters — ACL_in                                             │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sub-features:                          │ Tools:                     │
+│   • Per-vendor adapter modules        │ Custom adapters per vendor │
+│     (Aidoc, Qure, Lunit, Inspectra)   │ KServe Open Inference v2   │
+│   • OIP v2 → canonical bridge         │ Triton client libs         │
+│     (for internal models)             │ pydicom + highdicom        │
+│   • Provenance stamping               │                            │
+│   • Ontology mapping                  │                            │
+│     (vendor labels → SNOMED/RadLex)   │                            │
+│   • Uncertainty promoter              │                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 2b. Output Emitters (ACL_out)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Output Emitters — ACL_out                                           │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sub-features:                          │ Tools:                     │
+│   • DICOM SR TID 1500 emitter         │ highdicom ★                │
+│   • DICOM SEG / Parametric Map        │ pydicom                    │
+│   • FHIR DiagnosticReport/Observation │ HAPI FHIR                  │
+│   • HL7 v2 ORU^R01 (HOSxP)            │ HAPI HL7v2                 │
+│   • IHE AIRA VerificationFlag         │                            │
+│     round-trip                        │                            │
+│   • Mobile / push notifications       │                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key pitch hook for both:** "Two ACLs, two reasons. ACL_in absorbs vendor churn; ACL_out absorbs clinical-standard evolution. The internal canonical model never has to change."
+
+---
+
+### Pillar 3: Lifecycle & Operations
+
+#### 3a. Deployment Modes
+
+This is **strategic for your pitch** because the PRD already mentions silent run, sandbox, and the funding doc emphasizes pre-deployment safety.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Deployment Modes                                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐               │
+│   │ SANDBOX     │   │ SILENT RUN  │   │ PRODUCTION  │               │
+│   │ De-id data, │──▶│ Real data,  │──▶│ Real data,  │               │
+│   │ no patient  │   │ output NOT  │   │ output      │               │
+│   │ impact      │   │ shown to    │   │ delivered   │               │
+│   │             │   │ clinician   │   │             │               │
+│   └─────────────┘   └─────────────┘   └─────────────┘               │
+│                            │                                        │
+│                            └──── shadow comparison vs radiologist   │
+│                                                                     │
+│ Plus: Canary (5% → 50% → 100%) • Blue-Green • A/B for vendors       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key pitch hook:** "Silent Run mode is the distinctive Thai-FDA-aligned safety net — every new AI runs invisibly alongside radiologists for N studies before going live."
+
+#### 3b. PCCP-aware Update & Rollback
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ PCCP (Predetermined Change Control Plan) Awareness                  │
+├─────────────────────────────────────────────────────────────────────┤
+│ • Locked-model immutability (FDA / Thai FDA)                        │
+│ • Versioned transitions: Staging → Production → Archived            │
+│ • Auto-rollback on safety threshold breach                          │
+│ • Audit trail for every model transition                            │
+│                                                                     │
+│ Tools: MLflow stage transitions, Sigstore signing, Argo Rollouts    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 3c. Model Operations Surface
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Model Operations Surface                                            │
+├─────────────────────────────────────────────────────────────────────┤
+│ • Model deploy/update/decommission UI    (US-06 from PRD)           │
+│ • Per-model uptime, latency, error rate  (US-05)                    │
+│ • API: REST / gRPC / DICOMweb                                       │
+│ • Webhook & event bus (NATS / Kafka)                                │
+│                                                                     │
+│ Tools: Custom UI on top of MLflow + KServe APIs, OHIF for results   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Part 4 — Refined Module Diagram (Replacement for Your Draft)
+
+Here's what I'd propose in place of the current 4-box draft:
+
+```
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                          AI DEPLOY MODULE                                   ║
+╠═════════════════════════════════════════════════════════════════════════════╣
+║                                                                             ║
+║  ┌────── CORE ENGINE ──────┐  ┌─── INTEGRATION (ACL) ──┐  ┌── LIFECYCLE ──┐ ║
+║  │                         │  │                        │  │               │ ║
+║  │ ▸ Model Registry &      │  │ ▸ Input Adapters       │  │ ▸ Deploy Modes│ ║
+║  │   Packaging             │  │   (ACL_in: per-vendor) │  │   - Sandbox   │ ║
+║  │   (MLflow + MONAI       │  │   (Custom + OIP v2)    │  │   - Silent Run│ ║
+║  │    Bundle/MAP + ONNX    │  │                        │  │   - Canary    │ ║
+║  │    + Sigstore)          │  │ ▸ Output Emitters      │  │   - Prod      │ ║
+║  │                         │  │   (ACL_out: DICOM SR/  │  │               │ ║
+║  │ ▸ Inference Runtime     │  │    SEG/PM, FHIR, HL7)  │  │ ▸ PCCP Update │ ║
+║  │   (KServe + Triton)     │  │   (highdicom + HAPI)   │  │   & Rollback  │ ║
+║  │                         │  │                        │  │               │ ║
+║  │ ▸ Workflow              │  │                        │  │ ▸ Model Ops   │ ║
+║  │   Orchestration         │  │                        │  │   Surface     │ ║
+║  │   (MONAI Workflow Mgr   │  │                        │  │   (REST/gRPC/ │ ║
+║  │    + mercure routing)   │  │                        │  │    DICOMweb)  │ ║
+║  │                         │  │                        │  │               │ ║
+║  └─────────────────────────┘  └────────────────────────┘  └───────────────┘ ║
+║                                                                             ║
+║  Foundation: MONAI Deploy ecosystem  •  License-clean OSS (Apache 2.0)      ║
+║                                                                             ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+```
+
+This gives you **3 pillars × 8 components** — symmetrical with the AI Monitoring (3 zones) and Data Management (3 zones) modules, so the deck looks coherent.
+
+---
+
+## Part 5 — Things to Decide Before We Lock This In
+
+Before I pitch you a final slide, I need your input on a few **scope boundaries** because some items could plausibly live in different modules:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Boundary question                                  My recommendation    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. Where does the DICOM Gateway live?                                   │
+│    (Architecture shows it at platform edge)        → SHARED INFRA       │
+│                                                      (not inside Deploy)│
+├─────────────────────────────────────────────────────────────────────────┤
+│ 2. Should Model Registry be here, or split into                         │
+│    its own "AI Registry & Catalog" module?         → KEEP IN DEPLOY     │
+│                                                      (tightly coupled)  │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 3. Sandbox PACS — is it Data Management's          → DATA MGMT owns the │
+│    or AI Deploy's?                                   PACS; AI Deploy    │
+│                                                      USES it via mode   │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 4. Where does "Centralized UI/UX" go?              → DROP from Deploy.  │
+│                                                      It's the Dashboard │
+│                                                      UI on the right    │
+│                                                      side already.      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 5. Does ACL_in/ACL_out belong here, or in a        → KEEP HERE.         │
+│    separate "Integration Module"?                    Splitting it would │
+│                                                      hide the DDD story │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+Let me know if you'd like me to:
+
+```
+(a) Iterate on any specific pillar — I sense Pillar 3 (Lifecycle) might 
+    be the most novel/differentiating and worth deeper expansion
+
+(b) Lock in the 3-pillar / 8-component structure and move to slide design 
+    (matching the format used for AI Monitoring & Data Management)
+
+(c) Reconsider the boundaries above — especially #1 (DICOM Gateway placement) 
+    or #2 (separating Model Registry into its own module)
+
+(d) Brainstorm a 4th pillar I might be missing — e.g., "Security & 
+    Identity" (mTLS between models, model-level RBAC, secret management 
+    for vendor API keys)?
+```
