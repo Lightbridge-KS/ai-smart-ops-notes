@@ -9,6 +9,12 @@ book:
   site-url: https://ai-smart-ops-notes.netlify.app
   chapters:
     - index.qmd
+    - part: System Architecture
+      chapters:
+        - text: "AISmartOps System Architecture Summary"
+          href: "contents/architecture/aismartops_architecture_briefing.qmd"
+        - text: "AISmartOps Executive Summary & Pitch Cheatsheet"
+          href: "contents/architecture/aismartops_architecture_summary.qmd"
     - part: Landscape & Protocols
       chapters: 
         - text: "OSS Landscape for AI Orchestraction"

@@ -1,0 +1,561 @@
+---
+title: "AI Smart Orchestration Platform (AISmartOps)"
+subtitle: "Executive Summary & Pitch Cheatsheet"
+---
+> **Audience:** Executive radiologists who use AI in clinical practice.
+> **Purpose:** A concise reference to brief stakeholders, reviewers, and partners on what AISmartOps is, what it does, and why it matters — without slipping into developer-level detail.
+>
+> **Department of Radiology, Ramathibodi Hospital · Mahidol University**
+>
+> *Version 3 — aligned with refined system architecture narration (May 2026)*
+
+---
+
+## 1 · TL;DR — One Paragraph
+
+> **AISmartOps is a hospital-grade AI orchestration platform that turns medical AI from a fragile black box into a governed clinical instrument.** It rests on three operational modules — **Data Management** (the foundation that feeds and validates AI), **AI Deploy** (the bridge that brings AI into the clinical workflow), and **AI Monitoring** (the principal value module, ensuring every deployed AI stays trustworthy) — completed by an **Agentic AI Orchestrator** that automates the routine operational and governance work. The platform is built on license-clean open-source components — **Evidently AI, NannyML, Fairlearn, AI Fairness 360, MONAI Deploy, MLflow, DVC, Prometheus/Grafana** — and is aligned with FUTURE-AI, ISO/IEC 42001, and Thai FDA's human-in-the-loop mandate.
+
+---
+
+## 2 · Why This Matters — The Three Problems We Solve
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│  PROBLEM 1   "Will this AI work HERE?"                               │
+│              Vendor numbers don't predict local performance.         │
+│              No standard way to test before deploy.                  │
+│                                                                      │
+│  PROBLEM 2   "Is this AI still working?"                             │
+│              Performance silently decays after firmware updates,     │
+│              protocol changes, or population shift.                  │
+│              Most hospitals find out only after harm occurs.         │
+│                                                                      │
+│  PROBLEM 3   "Who is operating this AI?"                             │
+│              No one has the bandwidth to monitor 5+ AI models        │
+│              across CT, MRI, CXR, mammography, 24/7.                 │
+│              Governance becomes paperwork, not practice.             │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+AISmartOps answers all three by being the single connective tissue between hospital data systems, AI models, monitoring telemetry, and the people who must trust the output.
+
+---
+
+## 3 · System at a Glance
+
+![AISmartOps system architecture diagram.](AISmartOpsSystemArchitecture.png){fig-align="center"}
+
+
+```
+                        AI SMART ORCHESTRATION PLATFORM
+   ════════════════════════════════════════════════════════════════════════
+
+                  ┌─────────────────────────────────────────┐
+                  │       AGENTIC AI ORCHESTRATOR           │  ← the
+                  │   Specialised agents · Context · Tools  │   "operator"
+                  │   · Skills · HITL with escalation rules │   layer
+                  └─────────────────────────────────────────┘
+                                       │
+                                       ▼
+                  ┌─────────────────────────────────────────┐
+                  │         AI MONITORING MODULE            │  ← the
+                  │  Trust telemetry across the full        │   PRINCIPAL
+                  │  AI usage lifecycle                     │   module
+                  └─────────────────────────────────────────┘
+                                       ▲
+                                       │
+                  ┌─────────────────────────────────────────┐
+                  │           AI DEPLOY MODULE              │  ← the
+                  │  Sandbox · Shadow · Production          │   bridge
+                  │  ladder for safe clinical entry         │   into care
+                  └─────────────────────────────────────────┘
+                                       ▲
+                                       │
+                  ┌─────────────────────────────────────────┐
+                  │         DATA MANAGEMENT MODULE          │  ← the
+                  │  Ingestion · Curation · Ground Truth    │   FOUNDATION
+                  │  · Storage & Versioning                 │
+                  └─────────────────────────────────────────┘
+                                       ▲
+            ┌────────────────────────────────────────────────────┐
+            │  Hospital Systems · HIS · RIS · PACS · EHR · LIS   │
+            └────────────────────────────────────────────────────┘
+                                       │
+            ┌────────────────────────────────────────────────────┐
+            │            Governance & Compliance Layer           │
+            │  Auth · Sys Monitoring · Audit · Notify · Scheduler│
+            └────────────────────────────────────────────────────┘
+```
+
+**Three operational modules** stack from foundation upward — Data Management feeds the platform, AI Deploy bridges models into the clinical workflow, AI Monitoring is the principal value layer that keeps every deployed AI trustworthy.
+**One agentic layer** above orchestrates them, with a human-in-the-loop guarantee at every consequential step.
+**One governance & compliance strip** runs underneath the whole platform.
+
+---
+
+## 4 · The Four Modules
+
+> Narration order matches the actual pitch flow: foundation upward, ending at the principal value module, then the agentic layer that completes the platform.
+
+### 4.1 · Data Management Module — *the foundation*
+
+> **Purpose:** Manage all the data flowing through the platform — including ground truth — so that AI models can be safely tested in **Phase 1 (Pre-Installation Evaluation, PIE)** and **Phase 2 (Shadow Mode)** before any clinical use.
+
+This module is the *foundation* of the platform: nothing above it works without trustworthy, well-curated data underneath.
+
+```
+   Hospital sources → Ingestion → Curation → Ground Truth → Storage
+   ─────────────────────────────────────────────────────────────────
+   HIS / RIS / PACS    DICOM        De-ID         AI Result      Sandbox PACS
+   EHR / LIS           FHIR         Pixel scrub   Extractor      Object Store
+                       HL7          Terminology   Annotation     Data Lake
+                       Data QC      mapping       Mgmt           DVC versioning
+                                                  OMOP linker
+                                                  Label Store
+```
+
+#### The Two Ground Truth Pathways — *a key design decision*
+
+The platform supports **two complementary ways** to obtain ground truth labels for PIE and Shadow Mode evaluation:
+
+```
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                                                                 │
+   │  PATH 1 — Manual Upload                                         │
+   │  ────────────────────────────────────────────────────────────   │
+   │  Researchers, clinicians, or external collaborators upload      │
+   │  pre-labeled datasets directly into the platform.               │
+   │  → Use case: published datasets, IRB-approved annotation work,  │
+   │     regulatory validation cohorts.                              │
+   │                                                                 │
+   │  PATH 2 — Automatic Generation from Hospital Data               │
+   │  ────────────────────────────────────────────────────────────   │
+   │  Extract ground truth automatically from data already in the    │
+   │  hospital systems via:                                          │
+   │   • De-identification & anonymization (RSNA CTP, Presidio)      │
+   │   • Standard terminology mapping (SNOMED, LOINC, RadLex)        │
+   │   • NLP/LLM extraction from radiology reports (MedCAT)          │
+   │   • Clinical outcome linking (OMOP CDM)                         │
+   │  → Use case: at-scale label generation without manual cost.     │
+   │                                                                 │
+   └─────────────────────────────────────────────────────────────────┘
+```
+
+**Why both matter:** Path 1 alone doesn't scale — manual annotation is the single biggest bottleneck in clinical AI. Path 2 is what unblocks the unit's research velocity, but Path 1 remains essential for high-quality validation cohorts and regulatory submissions.
+
+**Three pitch pillars for this module:**
+
+1. **Standards-first ingestion** — DICOM, FHIR, HL7, OMOP CDM. No per-vendor adapter sprawl.
+2. **Privacy-by-Design (FR-28 in PRD)** — RSNA CTP de-identification + Microsoft Presidio for text PHI + pixel-burned-in PHI scrubbing. De-identification is *mandatory*, not optional.
+3. **Two ground truth pathways** — supporting both manual upload and automatic extraction. This is what unblocks the PIE and Shadow Mode evaluation cycles for every model the platform deploys.
+
+**Key tools to name in pitch:** **MONAI Deploy Informatics Gateway** (DICOM/FHIR ingestion, the Apache 2.0 medical-imaging standard), **RSNA CTP** (the de-facto standard for radiology de-id), **MedCAT** (NHS-proven radiology NLP), **DVC** (data versioning, visible on the diagram), **OHDSI/OMOP** (the global standard used by FDA Sentinel).
+
+---
+
+### 4.2 · AI Deploy Module — *the bridge into care*
+
+> **Purpose:** When a researcher or AI vendor wants to bring their developed AI model into the hospital workflow (PACS, RIS, EHR), this module is the orchestrator that gets it deployed — safely, uniformly, and with a graduated path to production.
+
+The module is built on three pillars:
+
+| Pillar | What it does |
+|---|---|
+| **Core Engine** | AI Registry & Catalog, Inference Runtime, Workflow Orchestration |
+| **Integration** | Standardized model input & output — uniform contract regardless of model origin |
+| **Lifecycle & Ops** | Sandbox / Shadow / Production deploy modes, Update & Rollback Management |
+
+**Two design commitments:**
+
+- **Multi-format support** — the module accepts models in many formats (PyTorch, ONNX, H5, TensorFlow SavedModel, MONAI Bundle / MAP).
+- **Standardized I/O contract** — every deployed model, regardless of origin, sees the same input shape and emits results in the same clinical standards (DICOM SR/SEG, FHIR, HL7 v2). This insulates the platform from both vendor format churn and clinical-standard evolution.
+
+#### The Three Deploy Modes — *the distinctive safety ladder*
+
+```
+   ┌─────────────────┐   ┌─────────────────┐   ┌──────────────────┐
+   │    SANDBOX      │   │     SHADOW      │   │   PRODUCTION     │
+   ├─────────────────┤   ├─────────────────┤   ├──────────────────┤
+   │ Input  ←─ in    │   │ Input  ←─ in/out│   │ Input  ←─ prod   │
+   │        platform │   │        platform │   │        system    │
+   │                 │   │                 │   │                  │
+   │ Output → in     │   │ Output → in     │   │ Output → prod    │
+   │         platform│   │     platform    │   │      system      │
+   │                 │   │     ONLY (not   │   │                  │
+   │                 │   │     used in     │   │                  │
+   │                 │   │     real care;  │   │                  │
+   │                 │   │     experts can │   │                  │
+   │                 │   │     inspect)    │   │                  │
+   └─────────────────┘   └─────────────────┘   └──────────────────┘
+        Isolated             Silent run               Live
+       evaluation         alongside experts       clinical use
+```
+
+- **Sandbox** — input and output data both stay entirely inside the platform. Pure isolated evaluation, no patient impact.
+- **Shadow** — input may come from inside or outside the platform, but **output is shown only inside the platform** and is **not used in real clinical care**. Designated clinicians or experts can inspect predictions for silent evaluation. This is where the model "earns its way" toward production.
+- **Production** — input and output flow with the real clinical production system.
+
+**The pitch line:** *No AI ever touches a patient before it has run silently alongside an expert reviewer for a defined evaluation period.* This is the **distinctive Thai-FDA-aligned safety net** of the platform.
+
+**Key tools to name in pitch:** **MONAI Deploy** (foundation, deployed at 10,000+ institutions via Siemens), **KServe + NVIDIA Triton** (inference runtime, the same combination behind Siemens AI-Rad Companion), **MLflow** (model registry, the de-facto industry standard with 24K GitHub stars), **mercure** (DICOM-rule routing, NYU Langone-proven).
+
+---
+
+### 4.3 · AI Monitoring Module — *the principal value module*
+
+> **Purpose:** Continuously verify that every deployed AI is still safe, accurate, fair, and reliable — and detect silent decay before patients are harmed. This is the **principal value module** of the platform, the layer that justifies the rest.
+
+The module covers the **entire AI usage lifecycle**, with five concerns:
+
+| Concern | What it checks |
+|---|---|
+| **Input Safeguards** | Is the input data sent to the AI within the distribution it was trained on? Image quality, demographics, acquisition parameters. |
+| **Robust & Reliable AI** | Is the model itself still performing — accuracy, confidence calibration, embedding drift? |
+| **Output Safeguards** | Is the distribution of AI predictions still consistent with historical norms? |
+| **Trustworthy AI** | Multiple dimensions beyond raw performance — **fairness** (equity across patient subgroups), **explainability**, **privacy**. |
+| **Infrastructure & System Monitoring** | Is the underlying compute, queue, and network healthy? |
+
+> **Note on "Trustworthy AI":** Earlier framings reduced this to fairness alone. In the refined platform vision it is broader — fairness *and* explainability *and* privacy together, mapping to the FUTURE-AI principles (Fairness, Universality, Traceability, Usability, Robustness, Explainability) plus the privacy commitments inherited from the Data Management module.
+
+**Open-source stack on the right side of the module box:**
+
+```
+   ┌──────────────────────────────────────────────────────────────┐
+   │  📊 Evidently AI    drift detection (input · embed · pred)   │
+   │  🟣 NannyML         performance estimation WITHOUT labels    │
+   │  ⚖️  AI Fairness 360 + Fairlearn — per-subgroup audits       │
+   │  🟠 Prometheus + Grafana — infra metrics, logs, dashboards   │
+   │  🩺 MONAI + pydicom — radiology-specific image QC            │
+   └──────────────────────────────────────────────────────────────┘
+```
+
+**Three pitch pillars for this module:**
+
+1. **End-to-end safety nets** — input → model → output is each independently monitored. Failures are caught at the earliest layer they manifest.
+2. **Performance estimation without labels** — most hospital AI lacks timely ground truth (clinical follow-up takes weeks to months). **NannyML** is the only OSS tool in the world that estimates performance impact when labels are delayed. A genuine differentiator most reviewers won't have heard of.
+3. **Trustworthy AI as continuous telemetry** — fairness, explainability, and privacy implemented in code via **Fairlearn / AI Fairness 360**, not as a one-time validation report.
+
+**Five monitoring layers, four-level response playbook** *(adapted from the unit's existing Model Monitoring & Management framework):*
+
+```
+   L1  Real-time (15 min)    Prediction & Confidence Drift   →  Prometheus
+   L2  Daily (1–3 days)      Data Drift (PSI · KS · Chi²)    →  Evidently + NannyML
+   L3  Weekly · Monthly      Fairness by Subgroup            →  AIF360
+   L4  Quarterly             Ground Truth Performance        →  MLflow + FHIR
+   L5  Quarterly · Deep      Embedding Drift (CLIP-based)    →  Custom encoder
+
+   Response:  Monitor  →  Investigate  →  Mitigate  →  Stop
+              (drift     (drift           (perf.       (drift
+               small)     clear)           drop)        critical)
+```
+
+---
+
+### 4.4 · Agentic AI Orchestrator — *the layer that completes the platform*
+
+> **Purpose:** The platform's own AI agent layer. Beyond the three operational modules above, this is what makes the platform **operationally complete and effective in daily use**. Without it, AISmartOps becomes shelfware: the data and dashboards are there, but no one has time to look at them.
+
+The orchestrator hosts **specialized AI agents**, each with a defined role, that connect to and operate the other modules.
+
+#### 4.4.1 · How It Works
+
+```
+   ┌────────────────────── AGENTIC AI ORCHESTRATOR ──────────────────────┐
+   │                                            👤 Human-in-the-loop     │
+   │                                               (escalation rules)    │
+   │  ┌─── Multi Agents 🤖 ───────┐  ┌── Trigger Modes ──┐  ┌─ Tool/   ─┐│
+   │  │ ┌────────┐ ┌────────┐ ┌─┐ │  │ ⏰ Time           │  │  Skills   ││
+   │  │ │ Drift  │ │Incident│ │…│ │  │   Scheduled       │  │  Registry ││
+   │  │ │ Agent  │ │ Agent  │ │ │ │  │                   │  │           ││
+   │  │ ├────────┤ ├────────┤ │ │ │  │ ⚡ Event-driven   │  │ Internal  ││
+   │  │ │Context │ │Context │ │ │ │  │   (alerts/drift)  │  │ Connectors││
+   │  │ │Tools   │ │Tools   │ │ │ │  │                   │  │           ││
+   │  │ │Skills  │ │Skills  │ │ │ │  │ 💬 On-demand      │  │Specialized││
+   │  │ └────────┘ └────────┘ └─┘ │  │   (human request) │  │  Skills   ││
+   │  └───────────────────────────┘  └───────────────────┘  └───────────┘│
+   │                                                                     │
+   └─────────────────────────────────────────────────────────────────────┘
+
+   Each agent has:                The Tool/Skills Registry holds:
+   ─────────────────              ──────────────────────────────────
+   • Context (its prompt)         • Internal Connectors — ways to reach
+   • Tools (what it can call)        Data Mgmt, Deploy, Monitoring, Notify
+   • Skills (what it can do)      • Specialized Agent Skills — capabilities
+                                     like report drafting, RCA, digesting
+```
+
+#### 4.4.2 · The Trio That Defines Each Agent
+
+A novel framing worth highlighting in the pitch:
+
+| Dimension | What it means | Example for Drift Agent |
+|---|---|---|
+| **Context** | The agent's role and prompt | "You watch every deployed AI for drift." |
+| **Tools** | What the agent can call into | `monitoring.get_drift_status()`, `deploy.auto_pause()` |
+| **Skills** | Capabilities the agent specializes in | Drift root-cause analysis, Thai-language summary drafting |
+
+Tools are the **bridges into other modules** (the connectors); skills are the **cognitive specialties** the agent owns. Both are catalogued in a shared registry so agents can be composed and versioned the same way models are.
+
+#### 4.4.3 · The Three Trigger Modes
+
+| Mode | Description | Example |
+|---|---|---|
+| **⏰ Time Scheduled** | Standing orders run on CRON | Compliance Agent runs every Monday 06:00 |
+| **⚡ Event-driven** | Reacts to alerts/notifications from other modules | Drift Agent activates when Evidently flags drift |
+| **💬 On-demand** | Human-initiated request | Radiologist asks "How has Inspectra performed this month?" |
+
+#### 4.4.4 · Human-in-the-Loop Guarantee
+
+```
+   Severity-tiered escalation rule (visible badge on the diagram):
+   ─────────────────────────────────────────────────────────────
+     L1  Notice         →  Agent logs · No human notified
+     L2  Information    →  Daily digest · Asynchronous read
+     L3  Action needed  →  Slack DM to AI Unit lead · 24h SLA
+     L4  Critical       →  Phone + page on-call radiologist
+                           (Auto-pause may have already fired
+                            via Deploy module's Auto-Rollback)
+```
+
+**No agent ever takes a clinically-consequential action autonomously.** Auto-pause is allowed (it's safer than continuing); auto-rollback is allowed (back to a previously-validated state); but model promotion, retraining decisions, and patient-facing communication always require explicit human confirmation.
+
+#### 4.4.5 · The Starter Roster of Specialized Agents
+
+```
+   ┌───────────────────────────────────────────────────────────────┐
+   │  1. DRIFT AGENT                                               │
+   │     Watches AI Monitoring → correlates signals → proposes     │
+   │     a response → escalates per rules.                         │
+   │                                                               │
+   │  2. INCIDENT AGENT                                            │
+   │     Output safeguard breach → gathers cross-module context →  │
+   │     drafts incident report → pages radiologist on-call.       │
+   │                                                               │
+   │  3. COMPLIANCE AGENT                                          │
+   │     Cron-based FUTURE-AI / ISO 42001 / Thai FDA audit.        │
+   │     Generates monthly compliance digest. Flags gaps.          │
+   │                                                               │
+   │  4. ONBOARDING AGENT (planned)                                │
+   │     New model in registry → walks PIE checklist → runs        │
+   │     sandbox eval → drafts evaluation report.                  │
+   │                                                               │
+   │  5. PERFORMANCE DIGEST AGENT (planned)                        │
+   │     Weekly Thai-language performance summary per AI model.    │
+   └───────────────────────────────────────────────────────────────┘
+```
+
+The Agentic AI Orchestrator is **not "AI deciding things for you."** It is **"AI doing the boring operational work so you can focus on the clinically meaningful decisions."**
+
+---
+
+## 5 · Governance & Compliance Layer
+
+Underneath all four modules, a thin horizontal strip provides cross-cutting concerns that every module depends on:
+
+```
+   ┌──────────────────────────────────────────────────────────────────┐
+   │  Security & Auth · System Monitoring · Traceability & Audit ·    │
+   │  Notification & Alert · Task & Job Scheduler                     │
+   └──────────────────────────────────────────────────────────────────┘
+```
+
+This is what makes the platform defensible to IRB, Thai FDA, and ISO/IEC 42001 auditors. Every action — by humans or by agents — is authenticated, traced, and auditable.
+
+---
+
+## 6 · How It All Fits Together — User Story
+
+> **The story to tell when pitching.**
+
+### Setting
+
+It is **March 2027.** Ramathibodi has had AISmartOps in production for one year. The platform is currently operating five AI models: Inspectra CXR-AI for tuberculosis screening (the NHSO national rollout model), an internally-trained brain CT bleed detector, a Lunit mammography assistant, an external researcher's spine fracture detector, and a TotalSegmentator-based body composition tool.
+
+### The Trigger
+
+On a Monday morning, the radiology department's portable X-ray fleet receives a firmware update from the vendor. The update slightly changes the post-processing curve applied to every chest X-ray — invisible to the human eye, but enough to shift pixel intensity statistics by ~3%.
+
+### What Happens — Without AISmartOps
+
+For four to six weeks, Inspectra CXR-AI silently underperforms on the new images. Sensitivity for TB drops by an estimated 8%. Several true positives are missed. A radiologist eventually notices something is "off," files a complaint, and an audit takes another month to reach a verdict. Trust in the entire AI program is damaged.
+
+### What Happens — With AISmartOps
+
+```
+   T+0h        Firmware update applied to portable X-ray fleet.
+
+   T+2h        First post-update studies arrive.
+               • Image QC Monitor (MONAI + pydicom) detects pixel
+                 statistics shift outside 3-month baseline.
+               • Input Drift Monitor (Evidently AI) computes PSI
+                 for the day → flags moderate drift.
+
+   T+4h        Drift Agent activates (event-driven trigger).
+               • Calls Infrastructure Monitoring tool → finds
+                 correlation with one device manufacturer.
+               • Cross-references DICOM Manufacturer / SoftwareVersion
+                 tags via Data Management tool.
+               • Concludes via root-cause skill: "high probability
+                 firmware-related drift, not population shift."
+
+   T+6h        Agent calls NannyML for label-free performance estimate
+               → estimated sensitivity drop: -7.4% (95% CI -4.1 to -10.8%).
+
+   T+6h+1m     Agent triggers AI Deploy auto-pause:
+               Inspectra CXR-AI moves from PRODUCTION → SHADOW.
+               Output suppressed; predictions still logged.
+
+   T+6h+2m     Slack DM to AI Unit lead (Thai language):
+               "อาจารย์ครับ Inspectra CXR-AI ถูก auto-pause แล้ว
+                ครับ — เกิด drift จาก firmware update ของเครื่อง
+                portable X-ray (Manufacturer X) เมื่อ 06:00 น.
+                NannyML ประเมินว่า sensitivity ลดลง ~7.4%
+                Recommended next step: รอข้อมูลใหม่ 2 สัปดาห์
+                แล้ว retrain หรือพิจารณา fine-tune?"
+
+   T+24h       Radiologist confirms via Dashboard UI.
+               • Compliance Agent generates an incident report aligned
+                 with FUTURE-AI Traceability + ISO 13485 CAPA template.
+
+   T+2 weeks   Data Management has accumulated 1,800 new firmware-era
+               studies (de-identified, label-extracted via MedCAT).
+
+   T+15 days   Onboarding Agent runs the retrained model through
+               the Sandbox → Shadow ladder.
+               Per-subgroup fairness check (Fairlearn) passes.
+
+   T+30 days   New model promoted to PRODUCTION.
+               Total clinical impact: zero missed TB diagnoses
+               attributable to the firmware change.
+```
+
+> **The pitch line:** *Without AISmartOps, this would have been a six-week silent failure detected by accident. With AISmartOps, it was a six-hour incident detected, contained, and resolved by the platform's own agents — with the radiologist staying in command at every consequential step.*
+
+---
+
+## 7 · Why This Stack Wins — Five Reviewer-Ready Differentiators
+
+```
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                                                                 │
+   │  1️⃣  STANDARDS-FIRST                                            │
+   │     DICOM, FHIR, HL7 v2 (HOSxP), OMOP CDM, SNOMED, RadLex,      │
+   │     IHE AIR/AIRA. We don't reinvent — we adopt.                 │
+   │                                                                 │
+   │  2️⃣  LICENSE-CLEAN                                              │
+   │     Apache 2.0 / MIT primary stack. No surprise vendor fees.    │
+   │     No AGPL contamination. Hospital-deployment-safe.            │
+   │                                                                 │
+   │  3️⃣  SHADOW-FIRST DEPLOYMENT                                    │
+   │     Sandbox → Shadow → Production ladder. No AI used in real    │
+   │     clinical care before silent-running for expert inspection.  │
+   │     Aligned with Thai FDA's human-in-the-loop mandate.          │
+   │                                                                 │
+   │  4️⃣  LABEL-FREE MONITORING                                      │
+   │     NannyML estimates performance impact even when ground       │
+   │     truth labels are weeks or months delayed. The only OSS      │
+   │     tool with this capability — uniquely valuable for clinical  │
+   │     AI where outcomes lag.                                      │
+   │                                                                 │
+   │  5️⃣  AGENTIC OPERATIONS WITH HITL                               │
+   │     Specialised AI agents (each with its own context, tools,    │
+   │     and skills) do the routine MLOps work. CRON-based,          │
+   │     event-triggered, with human-in-the-loop escalation rules.   │
+   │     The platform operates itself — radiologists supervise,      │
+   │     not babysit.                                                │
+   │                                                                 │
+   └─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 8 · Cheatsheet — One-Page Reference
+
+### What each module does, in eight words
+
+```
+   DATA MANAGEMENT       →  "Hospital data, AI-ready, labeled, versioned."
+   AI DEPLOY             →  "Any model in, clinical standards out, safely."
+   AI MONITORING         →  "Continuous trust. Drift detected before harm."
+   AGENTIC ORCHESTRATOR  →  "Specialised agents operate it. Humans command it."
+```
+
+### The platform layering, in one sentence each
+
+```
+   FOUNDATION   ·  Data Management feeds the platform with labeled,
+                   privacy-safe data ready for PIE & Shadow Mode.
+   BRIDGE       ·  AI Deploy brings models in via Sandbox → Shadow →
+                   Production, with a uniform input/output contract.
+   PRINCIPAL    ·  AI Monitoring is the value layer — input, robustness,
+                   output, trustworthiness, infra, all watched continuously.
+   COMPLETING   ·  Agentic Orchestrator gives the platform operational
+                   hands and eyes, with humans always in the loop.
+```
+
+### The one-tool-per-concern rule (if pressed for a single name)
+
+| Module / Concern | The one tool to name | Why |
+|---|---|---|
+| Data Management | **MONAI Informatics Gateway** | Apache 2.0 medical-imaging ingestion standard |
+| Data Versioning | **DVC** | Git-style versioning visible on the diagram |
+| AI Deploy (foundation) | **MONAI Deploy** | Apache 2.0, deployed at 10K+ institutions |
+| AI Deploy (registry) | **MLflow** | The 24K-star industry standard |
+| Monitoring (drift) | **Evidently AI** | Apache 2.0, 100+ metrics, the OSS standard |
+| Monitoring (label-free) | **NannyML** | Unique capability — solves delayed ground truth |
+| Trustworthy AI | **Fairlearn / AI Fairness 360** | Implements FUTURE-AI's Fairness principle |
+| Infrastructure | **Prometheus + Grafana** | What hospital IT already understands |
+| Agentic Layer | **Custom orchestrator + MCP-style registry** | LLM-agnostic; runs inside the hospital network |
+
+### Standards we align with
+
+```
+   Clinical:    DICOM, FHIR R4, HL7 v2, IHE AIR / AIRA / AIW-I
+   Vocabulary:  SNOMED CT, LOINC, RadLex, RadElement CDE
+   Data:        OMOP CDM (OHDSI)
+   AI/ML:       ONNX, MONAI Bundle / MAP, Sigstore + Rekor
+   Governance:  FUTURE-AI, ISO 13485, IEC 62304, ISO/IEC 42001
+   Regulatory:  Thai FDA HITL mandate, FDA PCCP, EU AI Act Annex IV
+```
+
+### Three sentences that close the pitch
+
+> *"AISmartOps doesn't replace radiologists — it lets one AI Unit safely supervise dozens of AI models at once."*
+>
+> *"It's the only Thai-built platform that combines Sandbox → Shadow → Production deployment, label-free continuous monitoring, and agentic operations in a single license-clean open-source stack."*
+>
+> *"And every consequential action stays human-in-the-loop, by design — because trust is something we build into the architecture, not bolt on at the end."*
+
+---
+
+## 9 · Appendix — Pitch Q&A Quick Answers
+
+**Q: How is this different from buying a commercial MLOps platform?**
+A: Commercial MLOps platforms are general-purpose. They don't speak DICOM, don't understand IHE AIR, don't handle delayed clinical ground truth, and lock you in. AISmartOps is purpose-built for radiology, license-clean, and adopts the standards your PACS already speaks.
+
+**Q: Why is Data Management called the "foundation"?**
+A: Because every other module depends on trustworthy data. PIE (Phase 1) and Shadow Mode (Phase 2) evaluation are impossible without ground truth. Monitoring is impossible without baselines computed on validated data. AI Deploy is meaningless if the data feeding the model isn't curated. Data Management isn't glamorous, but the platform doesn't function without it.
+
+**Q: Why is AI Monitoring called the "principal" module?**
+A: Because it's where the platform's value is most visible to executives, regulators, and clinicians. Data Management is plumbing; AI Deploy is a bridge; Monitoring is the layer that lets a radiologist say *"yes, our AI is still trustworthy this week"* — and prove it.
+
+**Q: What if a vendor refuses to provide a portable model?**
+A: Handled separately by Data Management's **AI Result Extractor** — an NLP/LLM pipeline + DICOM parser that works backwards from the vendor's PACS output. We can monitor and govern even sealed vendor systems, just with less granularity.
+
+**Q: How is the Agentic Orchestrator different from "just having AI run things"?**
+A: Three guarantees: (1) every agent's context, tools, and skills are explicit and versioned in a registry; (2) every consequential action has a human-in-the-loop escalation rule; (3) the runtime is hosted *inside* the hospital — agents never call out to external clouds with patient data.
+
+**Q: Who runs this day-to-day?**
+A: A small AI Unit (radiologist lead + 1–2 engineers) supervising the Agentic Orchestrator. The agents do the routine work; humans handle exceptions and approvals. This is the model that makes governance affordable at scale.
+
+**Q: What's the failure mode if the agentic layer goes down?**
+A: The three operational modules (Data Management, AI Deploy, AI Monitoring) continue running independently. Auto-pause and auto-rollback are wired directly into AI Deploy via Prometheus alerts — they do not depend on the agents. The agentic layer is a productivity multiplier, not a single point of failure.
+
+**Q: Can other hospitals adopt this?**
+A: Yes — that is the explicit OBJ-3 of the funded project: multi-site deployment via the Medical AI Consortium, with AI Sandbox / Evaluation Hub serving government, academia, and private-sector partners. The license-clean OSS stack makes this adoption frictionless.
+
+---
+
+*Document version 3 · 2026-05 · For internal Ramathibodi Radiology AI Unit use · Distribute with discretion.*
